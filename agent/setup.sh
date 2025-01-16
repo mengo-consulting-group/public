@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+# Check or set required input
+function check_or_set_required_input() {
+    local var_name=$1
+    local var_value=$(eval echo \$$var_name)
+    if [ -z "${var_value}" ]; then
+        read -p "${var_name} is not set. Please enter the ${var_name}: " var_value
+        if [ -z "${var_value}" ]; then
+            echo "${var_name} is required. Exiting."
+            exit 1
+        fi
+        export ${var_name}=${var_value}
+    fi
+}
+
 # Ensure infrastructure apps are available
 function add_apt_repos(){
   repos=${1}
@@ -152,6 +166,11 @@ INSTALL_DIR=/opt/mengo/agent
 HCP_VAULT_GLOBAL_DATA="https://api.cloud.hashicorp.com/secrets/2023-06-13/organizations/536b4122-6313-42a7-87a7-fa42d1e65362/projects/d6d602d6-faba-4baf-aaa6-8bf86588b39d/apps/mengo/open"
 MENGO_ANSIBLE_COLLECTION_URL="git+https://github.com/mengo-consulting-group/ansible.git#/ansible_collections/local/mengo,main"
 MENGO_AGENT_ENVIRONMENT_GIT_URL='-b main https://github.com/mengo-consulting-group/mengo-agent-environments.git'
+
+# Required inputs
+check_or_set_required_input "MENGO_AGENT_ID"
+check_or_set_required_input "HCP_CLIENT_ID"
+check_or_set_required_input "HCP_CLIENT_SECRET"
 
 # Required packages installation
 install_apt "ansible git gh"
