@@ -2,16 +2,26 @@
 
 # Check or set required input
 function check_or_set_required_input() {
-    local var_name=$1
-    local var_value=$(eval echo \$$var_name)
-    if [ -z "${var_value}" ]; then
-        read -p "${var_name} is not set. Please enter the ${var_name}: " var_value
-        if [ -z "${var_value}" ]; then
-            echo "${var_name} is required. Exiting."
-            exit 1
-        fi
-        export ${var_name}=${var_value}
+    if [ -f "${INSTALL_DIR}/mengo_credentials.sh" ]; then
+        source "${INSTALL_DIR}/mengo_credentials.sh"
     fi
+    for var_name in "$@"; do
+        local var_value=$(eval echo \$$var_name)
+        if [ -z "${var_value}" ]; then
+            read -t 60 -p "${var_name} is not set. Please enter the ${var_name}: " var_value
+            if [ -z "${var_value}" ]; then
+                echo "Timeout or empty input. ${var_name} is required. Exiting."
+                exit 1
+            fi
+            export ${var_name}=${var_value}
+        fi
+    done
+    # Store variables in mengo_credentials.sh
+    sudo rm -f ${INSTALL_DIR}/mengo_credentials.sh && touch ${INSTALL_DIR}/mengo_credentials.sh
+    for var_name in "$@"; do
+        local var_value=$(eval echo \$$var_name)
+        echo "export ${var_name}=${var_value}" | sudo tee -a ${INSTALL_DIR}/mengo_credentials.sh > /dev/null
+    done
 }
 
 # Ensure infrastructure apps are available
@@ -67,6 +77,24 @@ function get_hcp_vault_secrets(){
     jq -r '.secrets[] | select(.name == "providers") | .version.value' | sudo tee ${INSTALL_DIR}/.vault_providers.json
 }
 
+# Clone or pull git repo
+function clone_or_pull_git_repo(){
+    local repo_url=${1}
+    local repo_dir=${2}
+
+    me=$(whoami)
+    sudo mkdir -p ${repo_dir} && sudo chown ${me}:${me} ${repo_dir}
+
+    if [ -z "$( ls -A ${repo_dir} )" ]; then
+        git clone ${repo_url} ${repo_dir}
+    else
+        cd ${repo_dir}
+        git fetch --all
+        git reset --hard origin/main
+        cd -
+    fi
+}
+
 # Create environment file if does not exist
 function mengo_app_agent_configure_git(){
     cat ${INSTALL_DIR}/.vault_providers.json | jq -r '.github.github_token' | sudo tee ${INSTALL_DIR}/.gh_token
@@ -114,18 +142,13 @@ function mengo_app_agent_installation(){
 
     # Obtain environment definition[s]
     # TODO: use stick flag to make group to any file/dir created by the user who is installing
-    me=$(whoami)
-    sudo mkdir -p ${INSTALL_DIR}/inventory && sudo chown ${me}:${me} ${INSTALL_DIR}/inventory
-    if [ -z "$( ls -A ${INSTALL_DIR}/inventory )" ]; then
-        git clone ${MENGO_AGENT_ENVIRONMENT_GIT_URL} ${INSTALL_DIR}/inventory
-    else
-        cd ${INSTALL_DIR}/inventory
-        git pull
-        cd -
-    fi
+    clone_or_pull_git_repo ${MENGO_AGENT_ENVIRONMENT_GIT_URL} ${INSTALL_DIR}/inventory
 
     # Set up SSH private SSH key
     mengo_app_agent_ssh_private_key
+
+    # Copy this script under ${INSTALL_DIR}/setup.sh to be used by cronjob
+    sudo cp $0 ${INSTALL_DIR}/setup.sh
 }
 
 # Agent commands info
@@ -147,17 +170,10 @@ function agent_info(){
 
 # Agent start
 function agent_start_and_register(){
-    echo ""
-
-    # TODO: Create a shell script that periodically pull the secrets from HCP Vault.
-    # Then, we will be able to rotate any value like github key, ms teams, ssh keys
-
-    # # Start service
-    # echo ""
-    # echo "**** Mengo Agent schedule ****"
-    # cd ${INSTALL_DIR}
-    # echo "*********************************"
-    # echo ""
+    # Add cronjob to refresh mengo agent setup every 10 minutes
+    (sudo crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/setup.sh"; echo "*/10 * * * * ${INSTALL_DIR}/setup.sh # Mengo Agent setup") | sudo crontab -
+    # Add cronjob to run ansible playbooks every 15 minutes
+    (sudo crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/inventory/mengo/${MENGO_AGENT_ID}/entrypoint.sh"; echo "*/15 * * * * ${INSTALL_DIR}/inventory/mengo/${MENGO_AGENT_ID}/entrypoint.sh # Mengo Agent entrypoint") | sudo crontab -
 }
 
 # Global variables
@@ -167,21 +183,20 @@ HCP_VAULT_GLOBAL_DATA="https://api.cloud.hashicorp.com/secrets/2023-06-13/organi
 MENGO_ANSIBLE_COLLECTION_URL="git+https://github.com/mengo-consulting-group/ansible.git#/ansible_collections/local/mengo,main"
 MENGO_AGENT_ENVIRONMENT_GIT_URL='-b main https://github.com/mengo-consulting-group/mengo-agent-environments.git'
 
+sudo mkdir -p ${INSTALL_DIR} && sudo chown $(whoami):$(whoami) ${INSTALL_DIR}
+
 # Required inputs
-check_or_set_required_input "MENGO_AGENT_ID"
-check_or_set_required_input "HCP_CLIENT_ID"
-check_or_set_required_input "HCP_CLIENT_SECRET"
+check_or_set_required_input "MENGO_AGENT_ID" "HCP_CLIENT_ID" "HCP_CLIENT_SECRET"
 
 # Required packages installation
 install_apt "ansible git gh"
 install_snap "yq jq"
 
 # Agent installation
-sudo mkdir -p ${INSTALL_DIR}
 mengo_app_agent_installation
 
 # Agent info
 agent_info
 
 # Agent start & register
-# agent_start_and_register /opt/mengo/agent
+agent_start_and_register
