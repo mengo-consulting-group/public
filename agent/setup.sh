@@ -58,10 +58,6 @@ function install_snap(){
 }
 
 function get_hcp_vault_secrets(){
-    # TODO: check mengo_credentials.sh file exist, and validate them
-    # TODO: load this credentials when work with ansible collections
-    source mengo_credentials.sh
-
     export HCP_API_TOKEN=$(curl --silent --location "https://auth.idp.hashicorp.com/oauth2/token" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "client_id=$HCP_CLIENT_ID" \
@@ -79,16 +75,13 @@ function get_hcp_vault_secrets(){
 
 # Clone or pull git repo
 function clone_or_pull_git_repo(){
-    local repo_url=${1}
-    local repo_dir=${2}
-
     me=$(whoami)
-    sudo mkdir -p ${repo_dir} && sudo chown ${me}:${me} ${repo_dir}
+    sudo mkdir -p ${INSTALL_DIR}/inventory && sudo chown ${me}:${me} ${INSTALL_DIR}/inventory
 
-    if [ -z "$( ls -A ${repo_dir} )" ]; then
-        git clone ${repo_url} ${repo_dir}
+    if [ -z "$( ls -A ${INSTALL_DIR}/inventory )" ]; then
+        git clone ${MENGO_AGENT_ENVIRONMENT_GIT_URL} ${INSTALL_DIR}/inventory
     else
-        cd ${repo_dir}
+        cd ${INSTALL_DIR}/inventory
         git fetch --all
         git reset --hard origin/main
         cd -
@@ -142,13 +135,15 @@ function mengo_app_agent_installation(){
 
     # Obtain environment definition[s]
     # TODO: use stick flag to make group to any file/dir created by the user who is installing
-    clone_or_pull_git_repo ${MENGO_AGENT_ENVIRONMENT_GIT_URL} ${INSTALL_DIR}/inventory
+    clone_or_pull_git_repo
 
     # Set up SSH private SSH key
     mengo_app_agent_ssh_private_key
 
     # Copy this script under ${INSTALL_DIR}/setup.sh to be used by cronjob
-    sudo cp $0 ${INSTALL_DIR}/setup.sh
+    if [ "$0" != "${INSTALL_DIR}/setup.sh" ]; then
+        sudo cp $0 ${INSTALL_DIR}/setup.sh
+    fi
 }
 
 # Agent commands info
@@ -171,9 +166,9 @@ function agent_info(){
 # Agent start
 function agent_start_and_register(){
     # Add cronjob to refresh mengo agent setup every 10 minutes
-    (sudo crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/setup.sh"; echo "*/10 * * * * ${INSTALL_DIR}/setup.sh # Mengo Agent setup") | sudo crontab -
+    (crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/setup.sh"; echo "*/10 * * * * ${INSTALL_DIR}/setup.sh # Mengo Agent setup") | crontab -
     # Add cronjob to run ansible playbooks every 15 minutes
-    (sudo crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/inventory/mengo/${MENGO_AGENT_ID}/entrypoint.sh"; echo "*/15 * * * * ${INSTALL_DIR}/inventory/mengo/${MENGO_AGENT_ID}/entrypoint.sh # Mengo Agent entrypoint") | sudo crontab -
+    (crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/inventory/mengo/${MENGO_AGENT_ID}/entrypoint.sh"; echo "*/15 * * * * ${INSTALL_DIR}/inventory/mengo/${MENGO_AGENT_ID}/entrypoint.sh # Mengo Agent entrypoint") | crontab -
 }
 
 # Global variables
