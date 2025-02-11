@@ -76,12 +76,12 @@ function get_hcp_vault_secrets(){
 # Clone or pull git repo
 function clone_or_pull_git_repo(){
     me=$(whoami)
-    sudo mkdir -p ${INSTALL_DIR}/inventory && sudo chown ${me}:${me} ${INSTALL_DIR}/inventory
+    sudo mkdir -p ${INSTALL_DIR}/environments && sudo chown ${me}:${me} ${INSTALL_DIR}/environments
 
-    if [ -z "$( ls -A ${INSTALL_DIR}/inventory )" ]; then
-        git clone ${MENGO_AGENT_ENVIRONMENT_GIT_URL} ${INSTALL_DIR}/inventory
+    if [ -z "$( ls -A ${INSTALL_DIR}/environments )" ]; then
+        git clone ${MENGO_AGENT_ENVIRONMENT_GIT_URL} ${INSTALL_DIR}/environments
     else
-        cd ${INSTALL_DIR}/inventory
+        cd ${INSTALL_DIR}/environments
         git fetch --all
         git reset --hard origin/main
         cd -
@@ -157,7 +157,7 @@ function agent_info(){
     echo ""
     echo "Mengo agent environments"
     echo ""
-    echo "$(ls ${INSTALL_DIR}/inventory/mengo/${MENGO_AGENT_ID})"
+    echo "$(ls ${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID})"
     echo ""
     echo "*********************************"
     echo ""
@@ -166,9 +166,9 @@ function agent_info(){
 # Agent start
 function agent_start_and_register(){
     # Add cronjob to refresh mengo agent setup every 10 minutes
-    (crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/setup.sh"; echo "*/10 * * * * ${INSTALL_DIR}/setup.sh # Mengo Agent setup") | crontab -
+    (crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/setup.sh"; echo "* */1 * * * ${INSTALL_DIR}/setup.sh # Mengo Agent setup") | crontab -
     # Add cronjob to run ansible playbooks every 15 minutes
-    (crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/inventory/mengo/${MENGO_AGENT_ID}/entrypoint.sh"; echo "*/15 * * * * ${INSTALL_DIR}/inventory/mengo/${MENGO_AGENT_ID}/entrypoint.sh # Mengo Agent entrypoint") | crontab -
+    (crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID}/entrypoint.sh"; echo "* */2 * * * ${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID}/entrypoint.sh # Mengo Agent entrypoint") | crontab -
 }
 
 # Global variables
