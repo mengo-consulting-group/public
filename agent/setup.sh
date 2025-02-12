@@ -140,6 +140,12 @@ function mengo_app_agent_installation(){
     # Set up SSH private SSH key
     mengo_app_agent_ssh_private_key
 
+    # Add current user to the syslog group
+    sudo usermod -aG syslog $(whoami)
+    sudo mkdir -p /var/log/ansible/hosts
+    sudo chown -R root:syslog /var/log/ansible
+    sudo chmod -R 775 /var/log/ansible
+
     # Copy this script under ${INSTALL_DIR}/setup.sh to be used by cronjob
     if [ "$0" != "${INSTALL_DIR}/setup.sh" ]; then
         sudo cp $0 ${INSTALL_DIR}/setup.sh
@@ -165,6 +171,8 @@ function agent_info(){
 
 # Agent start
 function agent_start_and_register(){
+    # Add cronjob to refresh mengo agent setup file every hour
+    (crontab -l 2>/dev/null | grep -v "curl -L -s https://raw.githubusercontent.com/mengo-consulting-group/public/refs/heads/main/agent/setup.sh"; echo "0 */1 * * * curl -L -s https://raw.githubusercontent.com/mengo-consulting-group/public/refs/heads/main/agent/setup.sh | sudo tee ${INSTALL_DIR}/setup.sh # Mengo Agent setup download") | crontab -
     # Add cronjob to refresh mengo agent setup every hour
     (crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/setup.sh"; echo "0 */1 * * * ${INSTALL_DIR}/setup.sh # Mengo Agent setup") | crontab -
     # Add cronjob to run ansible playbooks every 2 hours
