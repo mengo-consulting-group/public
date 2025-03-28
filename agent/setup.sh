@@ -36,11 +36,10 @@ function install_apt(){
     export NEEDRESTART_MODE=a
     export DEBIAN_FRONTEND=noninteractive
     
-    sudo apt update
-    sudo apt-get install -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" curl wget
-
-    # ansible
-    add_apt_repos "ppa:ansible/ansible"
+    if ! command -v curl &> /dev/null || ! command -v wget &> /dev/null; then
+        sudo apt update
+        sudo apt-get install -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" curl wget
+    fi
 
     # github
     sudo mkdir -p -m 755 /etc/apt/keyrings \
@@ -49,12 +48,49 @@ function install_apt(){
 	&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
 
     sudo apt update
-    sudo apt-get install -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" ${apps}
+    for app in ${apps}; do
+        if ! dpkg -l | grep -qw ${app}; then
+            sudo apt-get install -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" ${app}
+        fi
+    done
+
+    if ! command -v pyenv &> /dev/null; then
+        export PYENV_GIT_TAG=v2.5.4
+        curl https://pyenv.run | bash
+    fi
+
+    # Add pyenv initialization to .bashrc if not already present
+    if ! grep -q 'export PYENV_ROOT="$HOME/.pyenv"' ~/.bashrc; then
+        echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+        echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+        echo 'eval "$(pyenv init --path)"' >> ~/.bashrc
+        echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
+    fi
+
+    # Reload .bashrc to apply changes
+    source ~/.bashrc
+    if ! pyenv versions | grep -q "ansible"; then
+        LIB_PACKAGES="build-essential zlib1g-dev libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev libncurses-dev tk-dev"
+        sudo apt-get install -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" ${LIB_PACKAGES}
+        pyenv install 3.11
+        pyenv virtualenv 3.11 ansible
+        sudo apt remove ${LIB_PACKAGES} -y
+        sudo apt autoremove -y
+    fi
+    pyenv activate ansible
+    source ~/.pyenv/versions/ansible/bin/activate
+    if ! command -v ansible &> /dev/null; then
+        pip install "ansible>11,<12"
+    fi
 }
 
 function install_snap(){
     apps=${1}
-    sudo snap install ${apps}
+    for app in ${apps}; do
+        if ! snap list | grep -qw ${app}; then
+            sudo snap install ${app}
+        fi
+    done
 }
 
 function get_hcp_vault_secrets(){
@@ -176,14 +212,14 @@ function agent_start_and_register(){
     # Add cronjob to refresh mengo agent setup every hour
     (crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/setup.sh"; echo "0 */1 * * * ${INSTALL_DIR}/setup.sh # Mengo Agent setup") | crontab -
     # Add cronjob to run ansible playbooks every 2 hours
-    (crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID}/entrypoint.sh"; echo "0 */2 * * * ${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID}/entrypoint.sh # Mengo Agent entrypoint") | crontab -
+    (crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID}/entrypoint.sh"; echo "0 */2 * * * source ~/.pyenv/versions/ansible/bin/activate && ${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID}/entrypoint.sh # Mengo Agent entrypoint") | crontab -
 }
 
 # Global variables
 INSTALL_DIR=/opt/mengo/agent
 
 HCP_VAULT_GLOBAL_DATA="https://api.cloud.hashicorp.com/secrets/2023-06-13/organizations/536b4122-6313-42a7-87a7-fa42d1e65362/projects/d6d602d6-faba-4baf-aaa6-8bf86588b39d/apps/mengo/open"
-MENGO_ANSIBLE_COLLECTION_URL="git+https://github.com/mengo-consulting-group/ansible.git#/ansible_collections/local/mengo,main"
+MENGO_ANSIBLE_COLLECTION_URL="git+https://github.com/mengo-consulting-group/ansible.git#/ansible_collections/local/mengo,v1.0.0"
 MENGO_AGENT_ENVIRONMENT_GIT_URL='-b main https://github.com/mengo-consulting-group/mengo-agent-environments.git'
 
 sudo mkdir -p ${INSTALL_DIR} && sudo chown $(whoami):$(whoami) ${INSTALL_DIR}
@@ -192,7 +228,7 @@ sudo mkdir -p ${INSTALL_DIR} && sudo chown $(whoami):$(whoami) ${INSTALL_DIR}
 check_or_set_required_input "MENGO_AGENT_ID" "HCP_CLIENT_ID" "HCP_CLIENT_SECRET"
 
 # Required packages installation
-install_apt "ansible git gh"
+install_apt "virtualenv rsyslog git gh"
 install_snap "yq jq"
 
 # Agent installation
