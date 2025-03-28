@@ -69,6 +69,12 @@ function install_apt(){
 
     # Reload .bashrc to apply changes
     source ~/.bashrc
+
+    if ! command -v pyenv &> /dev/null; then
+        echo "Error: pyenv is not installed or not available in the PATH. Exiting."
+        exit 1
+    fi
+
     if ! pyenv versions | grep -q "ansible"; then
         LIB_PACKAGES="build-essential zlib1g-dev libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev libncurses-dev tk-dev"
         sudo apt-get install -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" ${LIB_PACKAGES}
