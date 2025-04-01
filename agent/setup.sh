@@ -67,8 +67,11 @@ function install_apt(){
         echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
     fi
 
-    # Reload .bashrc to apply changes
-    source ~/.bashrc
+    # Initialize pyenv explicitly to apply changes
+    export PYENV_ROOT="$HOME/.pyenv"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+    eval "$(pyenv init --path)"
+    eval "$(pyenv virtualenv-init -)"
 
     if ! command -v pyenv &> /dev/null; then
         echo "Error: pyenv is not installed or not available in the PATH. Exiting."
@@ -216,11 +219,11 @@ function agent_start_and_register(){
     # Ensure SHELL=/bin/bash is the first line of crontab entries
     (crontab -l 2>/dev/null | grep -v "^SHELL=/bin/bash"; echo "SHELL=/bin/bash") | crontab -
     # Add cronjob to refresh mengo agent setup file every hour
-    (crontab -l 2>/dev/null | grep -v "curl -L -s https://raw.githubusercontent.com/mengo-consulting-group/public/refs/heads/main/agent/setup.sh"; echo "0 */1 * * * curl -L -s https://raw.githubusercontent.com/mengo-consulting-group/public/refs/heads/main/agent/setup.sh | sudo tee ${INSTALL_DIR}/setup.sh # Mengo Agent setup download") | crontab -
+    (crontab -l 2>/dev/null | grep -v "Mengo Agent setup download"; echo "0 */1 * * * curl -L -s https://raw.githubusercontent.com/mengo-consulting-group/public/refs/heads/main/agent/setup.sh | sudo tee ${INSTALL_DIR}/setup.sh # Mengo Agent setup download") | crontab -
     # Add cronjob to refresh mengo agent setup every hour
-    (crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/setup.sh"; echo "0 */1 * * * ${INSTALL_DIR}/setup.sh # Mengo Agent setup") | crontab -
+    (crontab -l 2>/dev/null | grep -v "Mengo Agent setup execution"; echo "0 */1 * * * ${INSTALL_DIR}/setup.sh # Mengo Agent setup execution") | crontab -
     # Add cronjob to run ansible playbooks every 2 hours
-    (crontab -l 2>/dev/null | grep -v "${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID}/entrypoint.sh"; echo "0 */2 * * * (source ~/.pyenv/versions/ansible/bin/activate && ${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID}/entrypoint.sh) >> /var/log/mengo_agent.log 2>&1 # Mengo Agent entrypoint") | crontab -
+    (crontab -l 2>/dev/null | grep -v "Mengo Agent entrypoint"; echo "0 */2 * * * (source ~/.pyenv/versions/ansible/bin/activate && ${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID}/entrypoint.sh) >> /var/log/mengo_agent.log 2>&1 # Mengo Agent entrypoint") | crontab -
 }
 
 # Global variables
