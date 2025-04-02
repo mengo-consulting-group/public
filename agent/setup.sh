@@ -223,7 +223,7 @@ function agent_start_and_register(){
     # Add cronjob to refresh mengo agent setup every hour
     (crontab -l 2>/dev/null | grep -v "Mengo Agent setup execution"; echo "0 */1 * * * ${INSTALL_DIR}/setup.sh # Mengo Agent setup execution") | crontab -
     # Add cronjob to run ansible playbooks every 2 hours
-    (crontab -l 2>/dev/null | grep -v "Mengo Agent entrypoint"; echo "0 */2 * * * (source ~/.pyenv/versions/ansible/bin/activate && ${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID}/entrypoint.sh) >> /var/log/mengo_agent.log 2>&1 # Mengo Agent entrypoint") | crontab -
+    (crontab -l 2>/dev/null | grep -v "Mengo Agent entrypoint"; echo "0 */2 * * * (source ~/.pyenv/versions/ansible/bin/activate && ${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID}/entrypoint.sh) > /var/log/mengo_agent.log 2>&1 # Mengo Agent entrypoint") | crontab -
 }
 
 # Global variables
