@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Verify if the operating system is Ubuntu 22.04 or 24.04
+# Verify if the operating system is Ubuntu 20.04, 22.04 or 24.04
 verify_ubuntu_version() {
     if [[ -f /etc/os-release ]]; then
         . /etc/os-release
-        if [[ "$NAME" == "Ubuntu" && ( "$VERSION_ID" == "22.04" || "$VERSION_ID" == "24.04" ) ]]; then
+        if [[ "$NAME" == "Ubuntu" && ( "$VERSION_ID" == "20.04" || "$VERSION_ID" == "22.04" || "$VERSION_ID" == "24.04" ) ]]; then
             echo "Operating system is Ubuntu $VERSION_ID"
         else
-            echo "This script only supports Ubuntu 22.04 or 24.04"
+            echo "This script only supports Ubuntu 20.04, 22.04 or 24.04"
             exit 1
         fi
     else
