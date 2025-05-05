@@ -190,6 +190,8 @@ function mengo_app_agent_installation(){
     sudo mkdir -p /var/log/ansible/hosts
     sudo chown -R root:syslog /var/log/ansible
     sudo chmod -R 775 /var/log/ansible
+    sudo touch /var/log/mengo_agent.log
+    sudo chown $(whoami):syslog /var/log/mengo_agent.log
 
     # Copy this script under ${INSTALL_DIR}/setup.sh to be used by cronjob
     if [ "$0" != "${INSTALL_DIR}/setup.sh" ]; then
