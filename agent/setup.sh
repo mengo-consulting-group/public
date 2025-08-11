@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+set -x
 # Check or set required input
 function check_or_set_required_input() {
     if [ -f "${INSTALL_DIR}/mengo_credentials.sh" ]; then
@@ -15,12 +15,6 @@ function check_or_set_required_input() {
             fi
             export ${var_name}=${var_value}
         fi
-    done
-    # Store variables in mengo_credentials.sh
-    sudo rm -f ${INSTALL_DIR}/mengo_credentials.sh && touch ${INSTALL_DIR}/mengo_credentials.sh
-    for var_name in "$@"; do
-        local var_value=$(eval echo \$$var_name)
-        echo "export ${var_name}=${var_value}" | sudo tee -a ${INSTALL_DIR}/mengo_credentials.sh > /dev/null
     done
 }
 
@@ -102,22 +96,6 @@ function install_snap(){
     done
 }
 
-function get_hcp_vault_secrets(){
-    export HCP_API_TOKEN=$(curl --silent --location "https://auth.idp.hashicorp.com/oauth2/token" \
-    --header "Content-Type: application/x-www-form-urlencoded" \
-    --data-urlencode "client_id=$HCP_CLIENT_ID" \
-    --data-urlencode "client_secret=$HCP_CLIENT_SECRET" \
-    --data-urlencode "grant_type=client_credentials" \
-    --data-urlencode "audience=https://api.hashicorp.cloud" | jq -r .access_token)
-
-    # Generate providers json file
-    curl --silent \
-    --location ${HCP_VAULT_GLOBAL_DATA} \
-    --request GET \
-    --header "Authorization: Bearer ${HCP_API_TOKEN}" | \
-    jq -r '.secrets[] | select(.name == "providers") | .version.value' | sudo tee ${INSTALL_DIR}/.vault_providers.json
-}
-
 # Clone or pull git repo
 function clone_or_pull_git_repo(){
     me=$(whoami)
@@ -135,42 +113,24 @@ function clone_or_pull_git_repo(){
 
 # Create environment file if does not exist
 function mengo_app_agent_configure_git(){
-    cat ${INSTALL_DIR}/.vault_providers.json | jq -r '.github.github_token' | sudo tee ${INSTALL_DIR}/.gh_token
+    echo ${GH_TOKEN} | sudo tee ${INSTALL_DIR}/.gh_token
 
     gh auth login --with-token < ${INSTALL_DIR}/.gh_token
 
     gh auth setup-git
 }
 
-# Function to check if SSH key exists in authorized_keys
-function ssh_public_key_exists() {
-  grep -q "$(cat ${INSTALL_DIR}/.ssh_public_key)" ~/.ssh/authorized_keys
-}
-
-# Function to add the key to authorized_keys if it doesn't exist
-function add_ssh_public_key() {
-  if ! ssh_public_key_exists "$(cat ${INSTALL_DIR}/.ssh_public_key)"; then
-    echo "$(cat ${INSTALL_DIR}/.ssh_public_key)" >> ~/.ssh/authorized_keys
-  fi
-}
-
 # Create environment file if does not exist
 function mengo_app_agent_ssh_private_key(){
-    cat ${INSTALL_DIR}/.vault_providers.json | jq -r '.ssh.private_key' | sudo tee ${INSTALL_DIR}/.ssh_private_key
-    cat ${INSTALL_DIR}/.vault_providers.json | jq -r '.ssh.public_key' | sudo tee ${INSTALL_DIR}/.ssh_public_key
+    echo ${SSH_PRIVATE_KEY} | sudo tee ${INSTALL_DIR}/.ssh_private_key
 
     sudo chmod 0400 ${INSTALL_DIR}/.ssh_private_key
     me=$(whoami)
     sudo chown ${me}:${me} ${INSTALL_DIR}/.ssh_private_key
-    
-    add_ssh_public_key
 }
 
 # Agent customization
 function mengo_app_agent_installation(){
-
-    # Get HCP Vault required secrets
-    get_hcp_vault_secrets
 
     # Configure git agent
     mengo_app_agent_configure_git
@@ -184,6 +144,10 @@ function mengo_app_agent_installation(){
 
     # Set up SSH private SSH key
     mengo_app_agent_ssh_private_key
+
+    # Set up Ansible Vault password file
+    echo ${VAULT_PASSWORD} | sudo tee ${INSTALL_DIR}/vault-password
+    sudo chmod 0400 ${INSTALL_DIR}/vault-password
 
     # Add current user to the syslog group
     sudo usermod -aG syslog $(whoami)
@@ -231,14 +195,13 @@ function agent_start_and_register(){
 # Global variables
 INSTALL_DIR=/opt/mengo/agent
 
-HCP_VAULT_GLOBAL_DATA=${HCP_VAULT_GLOBAL_DATA:-"https://api.cloud.hashicorp.com/secrets/2023-06-13/organizations/536b4122-6313-42a7-87a7-fa42d1e65362/projects/d6d602d6-faba-4baf-aaa6-8bf86588b39d/apps/mengo/open"}
 MENGO_ANSIBLE_COLLECTION_URL="git+https://github.com/mengo-consulting-group/ansible.git#/ansible_collections/local/mengo,v1.5.2"
 MENGO_AGENT_ENVIRONMENT_GIT_URL='-b main https://github.com/mengo-consulting-group/mengo-agent-environments.git'
 
 sudo mkdir -p ${INSTALL_DIR} && sudo chown $(whoami):$(whoami) ${INSTALL_DIR}
 
 # Required inputs
-check_or_set_required_input "MENGO_AGENT_ID" "HCP_CLIENT_ID" "HCP_CLIENT_SECRET"
+check_or_set_required_input "MENGO_AGENT_ID" "VAULT_PASSWORD" "GH_TOKEN" "SSH_PRIVATE_KEY"
 
 # Required packages installation
 install_apt "virtualenv rsyslog git gh"
