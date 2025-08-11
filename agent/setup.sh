@@ -122,9 +122,9 @@ function mengo_app_agent_configure_git(){
 
 # Create environment file if does not exist
 function mengo_app_agent_ssh_private_key(){
-    echo ${SSH_PRIVATE_KEY} | sudo tee ${INSTALL_DIR}/.ssh_private_key
+    echo -e ${SSH_PRIVATE_KEY} | sudo tee ${INSTALL_DIR}/.ssh_private_key
 
-    sudo chmod 0400 ${INSTALL_DIR}/.ssh_private_key
+    sudo chmod 0600 ${INSTALL_DIR}/.ssh_private_key
     me=$(whoami)
     sudo chown ${me}:${me} ${INSTALL_DIR}/.ssh_private_key
 }
@@ -148,6 +148,7 @@ function mengo_app_agent_installation(){
     # Set up Ansible Vault password file
     echo ${VAULT_PASSWORD} | sudo tee ${INSTALL_DIR}/vault-password
     sudo chmod 0400 ${INSTALL_DIR}/vault-password
+    sudo chown ${whoami}:${whoami} ${INSTALL_DIR}/vault-password
 
     # Add current user to the syslog group
     sudo usermod -aG syslog $(whoami)
@@ -195,7 +196,7 @@ function agent_start_and_register(){
 # Global variables
 INSTALL_DIR=/opt/mengo/agent
 
-MENGO_ANSIBLE_COLLECTION_URL="git+https://github.com/mengo-consulting-group/ansible.git#/ansible_collections/local/mengo,v1.5.2"
+MENGO_ANSIBLE_COLLECTION_URL="git+https://github.com/mengo-consulting-group/ansible.git#/ansible_collections/local/mengo,MCG-764/honeypots"
 MENGO_AGENT_ENVIRONMENT_GIT_URL='-b main https://github.com/mengo-consulting-group/mengo-agent-environments.git'
 
 sudo mkdir -p ${INSTALL_DIR} && sudo chown $(whoami):$(whoami) ${INSTALL_DIR}
