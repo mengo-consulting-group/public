@@ -146,9 +146,10 @@ function mengo_app_agent_installation(){
     mengo_app_agent_ssh_private_key
 
     # Set up Ansible Vault password file
+    me=$(whoami)
     echo ${VAULT_PASSWORD} | sudo tee ${INSTALL_DIR}/vault-password
     sudo chmod 0400 ${INSTALL_DIR}/vault-password
-    sudo chown ${whoami}:${whoami} ${INSTALL_DIR}/vault-password
+    sudo chown ${me}:${me} ${INSTALL_DIR}/vault-password
 
     # Add current user to the syslog group
     sudo usermod -aG syslog $(whoami)
@@ -215,4 +216,4 @@ mengo_app_agent_installation
 agent_info
 
 # Agent start & register
-agent_start_and_register
+# agent_start_and_register
