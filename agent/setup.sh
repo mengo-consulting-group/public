@@ -197,7 +197,7 @@ function agent_start_and_register(){
 # Global variables
 INSTALL_DIR=/opt/mengo/agent
 
-MENGO_ANSIBLE_COLLECTION_URL="git+https://github.com/mengo-consulting-group/ansible.git#/ansible_collections/local/mengo,main"
+MENGO_ANSIBLE_COLLECTION_URL="git+https://github.com/mengo-consulting-group/ansible.git#/ansible_collections/local/mengo,v1.6.3"
 MENGO_AGENT_ENVIRONMENT_GIT_URL='-b main https://github.com/mengo-consulting-group/mengo-agent-environments.git'
 
 sudo mkdir -p ${INSTALL_DIR} && sudo chown $(whoami):$(whoami) ${INSTALL_DIR}
