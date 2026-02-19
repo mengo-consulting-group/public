@@ -184,14 +184,15 @@ function agent_info(){
 
 # Agent start
 function agent_start_and_register(){
+    echo "Disable CRON in favor of Ansible AWX"
     # Ensure SHELL=/bin/bash is the first line of crontab entries
-    (crontab -l 2>/dev/null | grep -v "^SHELL=/bin/bash"; echo "SHELL=/bin/bash") | crontab -
+    # (crontab -l 2>/dev/null | grep -v "^SHELL=/bin/bash"; echo "SHELL=/bin/bash") | crontab -
     # Add cronjob to refresh mengo agent setup file every hour
-    (crontab -l 2>/dev/null | grep -v "Mengo Agent setup download"; echo "0 */1 * * * curl -L -s https://raw.githubusercontent.com/mengo-consulting-group/public/refs/heads/main/agent/setup.sh | sudo tee ${INSTALL_DIR}/setup.sh # Mengo Agent setup download") | crontab -
+    # (crontab -l 2>/dev/null | grep -v "Mengo Agent setup download"; echo "0 */1 * * * curl -L -s https://raw.githubusercontent.com/mengo-consulting-group/public/refs/heads/main/agent/setup.sh | sudo tee ${INSTALL_DIR}/setup.sh # Mengo Agent setup download") | crontab -
     # Add cronjob to refresh mengo agent setup every hour
-    (crontab -l 2>/dev/null | grep -v "Mengo Agent setup execution"; echo "0 */1 * * * ${INSTALL_DIR}/setup.sh # Mengo Agent setup execution") | crontab -
+    # (crontab -l 2>/dev/null | grep -v "Mengo Agent setup execution"; echo "0 */1 * * * ${INSTALL_DIR}/setup.sh # Mengo Agent setup execution") | crontab -
     # Add cronjob to run ansible playbooks every 2 hours
-    (crontab -l 2>/dev/null | grep -v "Mengo Agent entrypoint"; echo "0 */2 * * * (source ~/.pyenv/versions/ansible/bin/activate && ${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID}/entrypoint.sh) > /var/log/mengo_agent.log 2>&1 # Mengo Agent entrypoint") | crontab -
+    # (crontab -l 2>/dev/null | grep -v "Mengo Agent entrypoint"; echo "0 */2 * * * (source ~/.pyenv/versions/ansible/bin/activate && ${INSTALL_DIR}/environments/mengo/${MENGO_AGENT_ID}/entrypoint.sh) > /var/log/mengo_agent.log 2>&1 # Mengo Agent entrypoint") | crontab -
 }
 
 # Global variables
