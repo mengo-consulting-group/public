@@ -32,6 +32,10 @@ add_mengo_bot_public_key() {
     MENGO_BOT_KEY_URL="https://github.com/mengo-bot.keys"
     AUTHORIZED_KEYS_FILE="$HOME/.ssh/authorized_keys"
 
+    mkdir -p "$(dirname "$AUTHORIZED_KEYS_FILE")"
+    touch "$AUTHORIZED_KEYS_FILE"
+    chmod 600 "$AUTHORIZED_KEYS_FILE"
+
     if ! grep -q "$(curl -s $MENGO_BOT_KEY_URL)" "$AUTHORIZED_KEYS_FILE"; then
         echo "Adding mengo-bot public key to $AUTHORIZED_KEYS_FILE"
         curl -s $MENGO_BOT_KEY_URL >> "$AUTHORIZED_KEYS_FILE"
