@@ -14,9 +14,11 @@ Prebuilt installers for macOS, Windows, and Linux.
 
 ## Installing
 
-**macOS** — Open the `.dmg` and drag the app into `Applications`. If macOS blocks it on first launch as being from an unidentified developer, right-click the app and choose **Open**.
+**macOS** — Open the `.dmg` and drag the app into `Applications`. Gatekeeper will say the app "is damaged and can't be opened" on first launch — open Terminal and run:
 
-**Windows** — Run the `.exe` and follow the installer.
+    xattr -dr com.apple.quarantine "/Applications/Open WebUI.app"
+
+**Windows** — Run the `.exe` and follow the installer. SmartScreen will say "Windows protected your PC" — click **More info** → **Run anyway**.
 
 **Linux** — Make the AppImage executable, then run it:
 
