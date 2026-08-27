@@ -6,9 +6,9 @@ Prebuilt installers for macOS, Windows, and Linux.
 
 | Platform | Installer |
 |----------|-----------|
-| macOS (Apple Silicon) | [**Download .dmg**](https://github.com/mengo-consulting-group/public/releases/latest/download/app-arm64.dmg) |
-| Windows x64 | [**Download .exe**](https://github.com/mengo-consulting-group/public/releases/latest/download/app-x64-setup.exe) |
-| Linux x64 (AppImage) | [**Download .AppImage**](https://github.com/mengo-consulting-group/public/releases/latest/download/app_x86_64.AppImage) |
+| macOS (Apple Silicon) | [**Download .dmg**](https://github.com/mengo-consulting-group/public/releases/latest/download/c2-arm64.dmg) |
+| Windows x64 | [**Download .exe**](https://github.com/mengo-consulting-group/public/releases/latest/download/c2-x64-setup.exe) |
+| Linux x64 (AppImage) | [**Download .AppImage**](https://github.com/mengo-consulting-group/public/releases/latest/download/c2_x64.AppImage) |
 
 [All releases →](https://github.com/mengo-consulting-group/public/releases)
 
@@ -22,5 +22,5 @@ Prebuilt installers for macOS, Windows, and Linux.
 
 **Linux** — Make the AppImage executable, then run it:
 
-    chmod +x app_x86_64.AppImage
-    ./app_x86_64.AppImage
+    chmod +x c2_x64.AppImage
+    ./c2_x64.AppImage
