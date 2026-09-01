@@ -16,7 +16,7 @@ Prebuilt installers for macOS, Windows, and Linux.
 
 **macOS** — Open the `.dmg` and drag the app into `Applications`. Gatekeeper will say the app "is damaged and can't be opened" on first launch — open Terminal and run:
 
-    xattr -dr com.apple.quarantine "/Applications/Open WebUI.app"
+    xattr -dr com.apple.quarantine "/Applications/Open WebUI CapAI.app"
 
 **Windows** — Run the `.exe` and follow the installer. SmartScreen will say "Windows protected your PC" — click **More info** → **Run anyway**.
 
