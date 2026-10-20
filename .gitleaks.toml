@@ -1,0 +1,12 @@
+# Gitleaks configuration for public
+# Docs: https://github.com/gitleaks/gitleaks#configuration
+
+title = "public - Gitleaks Config"
+
+[extend]
+# Build on top of the curated ruleset that ships with Gitleaks.
+useDefault = true
+
+# No allowlist needed: a full-history scan (all branches and tags) found no findings when
+# this file was added (AL-771). If a false positive shows up, add an anchored regex here
+# (matched against the secret value) instead of allowlisting whole paths.
